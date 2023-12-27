@@ -1,0 +1,9 @@
+langchain
+torch
+accelerate
+sentence_transformers
+faiss-cpu
+huggingface-hub
+pypdf
+llama-cpp-python
+pyairtable

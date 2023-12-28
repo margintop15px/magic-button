@@ -8,4 +8,5 @@
                  [clj-http "3.12.3"]
                  [clj-python/libpython-clj "2.025"]]
 
-  :repl-options {:init-ns magic-button.core})
+  :repl-options {:init-ns magic-button.core}
+  :main magic-button.core/server)

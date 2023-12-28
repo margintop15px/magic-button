@@ -54,24 +54,43 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     }
   })
-      if ('get_tables' === request.set) {
-        try {
-          const promiseFetch = new Promise(async (resolve) => {
-            let response = await fetch('http://localhost:3000/api/v1/get-tables', {method : "GET", mode: 'cors'});
-            if (response.ok) {
-              const result =  await response.json();
-              resolve(result)
-            }
-          })
-          promiseFetch.then((response) => {
-              sendResponse(response);
-          }
-          )
+  if ('send_html' === request.set) {
+    const promiseSend = new Promise(async (resolve) => {
+      let response = await fetch('https://saved-stallion-unique.ngrok-free.app/api/v1/'+ request.project+'/html',
+                                 {method : 'POST',
+                                  headers: {
+			                            'Content-Type': 'application/json'
+		                            },
+		                            body: JSON.stringify({html: request.html})
+                              });
+        if (response.ok) {
+          const result =  await new Response(response.body).text();
+          resolve(result)
         }
-        catch(error)  {
-          console.error(`Error in load function for : ${error}`);
-        };
+      })
+      promiseSend.then((response) => {
+        sendResponse(response);
       }
+                       )
+  }
+  if ('get_tables' === request.get) {
+    try {
+      const promiseFetch = new Promise(async (resolve) => {
+        let response = await fetch('https://saved-stallion-unique.ngrok-free.app/api/v1/get-tables', {method : "GET", mode: 'cors'});
+        if (response.ok) {
+          const result =  await response.json();
+          resolve(result)
+        }
+      })
+      promiseFetch.then((response) => {
+        sendResponse(response);
+      }
+                       )
+    }
+    catch(error)  {
+      console.error(`Error in load function for : ${error}`);
+    };
+  }
 
   return true
 });

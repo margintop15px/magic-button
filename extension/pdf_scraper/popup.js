@@ -20,8 +20,8 @@ const loadlist = async(request) => {
     console.log(request);
     var selectElement = document.getElementById('projects')
 
-    for (var i = 0; i <= request.length(); i++) {
-        selectElement.add(new Option(request[i].id, request[i].name))
+    for (var i = 0; i <= request.length; i++) {
+        selectElement.add(new Option(request[i].name, request[i].id))
     }
 }
 
@@ -44,49 +44,73 @@ checkbox.addEventListener('change', function() {
     }
 })
 
-var button = document.getElementById("send_pdf");
-button.addEventListener('click', async () => {
+function DOMtoString() {
+    let selector = document.body.getElementsByTagName("main")[0].innerHTML
+    window.postMessage(
+        {type : "FROM_PAGE", text : selector}, "*");
+    return selector
+}
 
-    let queryOptions = { active: true, lastFocusedWindow: true };
-    // `tab` will either be a `tabs.Tab` instance or `undefined`.
-    let [tab] = await chrome.tabs.query(queryOptions);
-    const printPdf = () => {
-        var doc = new jsPDF();
-        console.log('!!!')
+function bytesToBase64(bytes) {
+    var binString = '';
+    for(var i = 0; i < Math.ceil(bytes.length / 32768.0); i++) {
+        binString += String.fromCharCode.apply(null, bytes.slice(i * 32768, Math.min((i+1) * 32768, bytes.length)))
+    }
+  return btoa(binString);
+}
+
+function receiveText(resultsArray){
+    console.log(resultsArray[0]);
+
+    var pages = resultsArray[0].result;
+    var e = document.getElementById("projects");
+    var value = e.options[e.selectedIndex].value;
+    chrome.runtime.sendMessage(
+    {
+        "set": "send_html",
+        "html": bytesToBase64(new TextEncoder().encode(pages)),
+        "project" : value
+    })
+    /*html2PDF(pages, {
+            jsPDF: {
+                format: 'a4',
+            },
+            imageType: 'image/jpeg',
+            output: './pdf/generate.pdf'
+        })
+    */
+    /*var doc = new jsPDF('p', 'pt', 'a4');
         var elementHandler = {
             '#ignorePDF': function (element, renderer) {
                 return true;
             }
         };
-        var source = window.document.getElementsByTagName("body")[0];
-        doc.fromHTML(
+    var source = resultsArray[0].result;
+        doc.html(
             source,
-            15,
-            15,
-            {
-                'width': 180,'elementHandlers': elementHandler
-            });
+            {x:10,
+             y:10})
+    doc.output("dataurlnewwindow");*/
+}
 
-        doc.output("dataurlnewwindow");
-    }
+var button = document.getElementById("send_pdf");
+button.addEventListener('click', () => {
 
-   await chrome.scripting
-            .executeScript({
-              target : {tabId : tab.id},
-                files : [ "./lib/js/jspdf.umd.min.js" ],
-            })
-            .then(injectionResults => {
-              for (const {frameId, result} of injectionResults) {
-                console.log(`Frame ${frameId} result:`, result);
-              }
+    let queryOptions = { active: true, currentWindow: true };
+    chrome.tabs.query(queryOptions).then((tabs) => {
+        var activeTabId = tabs[0];
+        if (activeTabId) {
+            return chrome.scripting.executeScript({
+                target: { tabId: activeTabId.id },
+                func: DOMtoString,
+            }, receiveText)
+        }
+    }).then((results) => {
 
-            }
-            )
+    }).catch((error) => {
+        message = 'There was an error injecting script : \n' + error.message;
+    });
 
-    await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: printPdf
-    }).then(() => console.log('Injected a function!'));
 })
 
 chrome.runtime.sendMessage({"get": "current_state"}, (response) => {
@@ -98,10 +122,26 @@ chrome.runtime.sendMessage({"get": "current_state"}, (response) => {
 
 chrome.runtime.sendMessage(
     {
-        "set": "get_tables"
+        "get": "get_tables"
     }, async (response) => {
         if (typeof response !== 'undefined' && response != "") {
             await loadlist(response);
         }
 
     })
+
+//window.jsPDF = window.jspdf.jsPDF;
+
+var port = chrome.runtime.connect();
+
+window.addEventListener("message", (event) => {
+  // We only accept messages from ourselves
+  if (event.source !== window) {
+    return;
+  }
+
+  if (event.data.type && (event.data.type === "FROM_PAGE")) {
+    console.log("Content script received: " + event.data.text);
+    port.postMessage(event.data.text);
+  }
+}, false);

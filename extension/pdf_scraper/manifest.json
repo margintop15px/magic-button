@@ -11,6 +11,9 @@
         "pageCapture",
         "storage"
     ],
+    "host_permissions": [
+        "*://*/*"
+    ],
     "action": {
       "default_icon": {
       },

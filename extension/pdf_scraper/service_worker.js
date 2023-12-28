@@ -1,47 +1,31 @@
 const environment = 'production';
 
-function getVariables(key) {
+async function getVariables(key) {
   var value ;
-  chrome.storage.local.get([key]).then((result) => {
+  await chrome.storage.local.get([key]).then((result) => {
     value = result[key];
   });
   return value;
 }
 
-function setVariables(name, value) {
+async function setVariables(name, value) {
   console.log({[name] : value});
-  chrome.storage.local.set({[name] : value}).then(() => {
+  await chrome.storage.local.set({[name] : value}).then(() => {
       console.log("Value is set");
     });
 }
 
-function initVariables(extensionRootTabId, extensionId, extensionPath, env) {
-
-    setVariables('is_enabled_pdf', true)
-}
-
-async function start(tab) {
-  await chrome.scripting.executeScript({
-    target: {tabId: tab.id},
-    func: initVariables,
-    args: [tab.id, chrome.runtime.id, chrome.runtime.getURL("/").replace(/\/$/, ""), environment]
-  })
-  await chrome.scripting.executeScript({
-    target: {tabId: tab.id},
-    files: ['']
-  });
-  // }
-}
-
-self.addEventListener("install", event => {
-  setVariables('is_enabled_pdf', true);
-  console.log("Service Worker installing.");
+chrome.runtime.onInstalled.addListener(async ({ reason }) => {
+  if (reason === 'install') {
+    await setVariables('is_enabled_pdf', true);
+    console.log("Service Worker installing.");
+  }
 });
 
 // Register popup messages listener
-    chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         /* getters */
-       var isEnabled = getVariables('is_enabled_pdf');
+       var isEnabled = await getVariables('is_enabled_pdf');
         if ('is_enabled_pdf' === request.get) {
             sendResponse({
                 is_enabled_pdf: isEnabled
@@ -64,14 +48,49 @@ self.addEventListener("install", event => {
         }
 
       if ('get_tables' === request.set) {
-        fetch('/api/v1/get_tables').then(res => {
-          res.json();
-          sendResponse({items : []});
-        }, err => {
-          console.log(err);
-        })
-        .then(parseRooms, err => {
-          console.log(err);
-        })
-      }
+        let response = await fetch('http://localhost:3000/api/v1/get-tables', {method : "GET", mode: 'cors'});
+        try {
+         if (response.ok) {
+             const result =  await response.json();
+           sendResponse(result);
+         }
+          else if (response.status == 404 ){
+            sendResponse({
+                items : []
+            });
+          }
+          else {
+             throw new Error(`Request failed with status ${response.status}`);
+         }
+     }
+     catch(error)  {
+         console.error(`Error in load function for : ${error}`);
+
+     };
+
+
+    }
     });
+
+chrome.action.onClicked.addListener(async (tab) => {
+    const prevState = await chrome.action.getBadgeText({ tabId: tab.id });
+    // Next state will always be the opposite
+    const nextState = prevState === 'ON' ? 'OFF' : 'ON'
+
+    // Set the action badge to the next state
+    await chrome.action.setBadgeText({
+      tabId: tab.id,
+      text: nextState,
+    });
+
+  if (nextState === "ON") {
+      // Insert the CSS file when the user turns the extension on
+      chrome.scripting
+            .executeScript({
+              target : {tabId : getTabId()},
+              files : [ "lib/js/jspdf.umd.min.js" ],
+            })
+            .then(() => console.log("script injected"));
+    }
+  }
+                                   );

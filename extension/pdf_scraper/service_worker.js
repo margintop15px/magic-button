@@ -17,6 +17,9 @@ async function setVariables(name, value) {
 
 chrome.runtime.onInstalled.addListener(async ({ reason }) => {
   if (reason === 'install') {
+    chrome.action.setBadgeText({
+      text: "OFF",
+    });
     await setVariables('is_enabled_pdf', true);
     console.log("Service Worker installing.");
   }
@@ -83,15 +86,20 @@ chrome.action.onClicked.addListener(async (tab) => {
       tabId: tab.id,
       text: nextState,
     });
-
+  console.log(`target ${tab.id}`, nextState)
   if (nextState === "ON") {
       // Insert the CSS file when the user turns the extension on
-      chrome.scripting
+    await chrome.scripting
             .executeScript({
-              target : {tabId : tab.id},
-              files : [ "lib/js/jspdf.umd.min.js" ],
+              target : {tabId : tab.id, allFrames : true},
+              files : [ "./lib/js/jspdf.umd.min.js" ],
             })
-            .then(() => console.log("script injected"));
+            .then(injectionResults => {
+              for (const {frameId, result} of injectionResults) {
+                console.log(`Frame ${frameId} result:`, result);
+              }
+
+            }
+                 )
   }
-}
-)
+})

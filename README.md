@@ -13,6 +13,9 @@ eval "$(pyenv init -)"
 eval "$(pyenv virtualenv-init -)"
 
 pyenv install 3.8 
+
+pipx install virtualenv
+
 virtualenv -p ~/.pyenv/versions/3.8.18/bin/python env
 
 source env/bin/activate

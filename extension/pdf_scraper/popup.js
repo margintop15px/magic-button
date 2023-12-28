@@ -18,6 +18,11 @@ const validateView = async (is_enabled) => {
 
 const loadlist = async(request) => {
     console.log(request);
+    var selectElement = document.getElementById('projects')
+
+    for (var i = 0; i <= request.length(); i++) {
+        selectElement.add(new Option(request[i].id, request[i].name))
+    }
 }
 
 var checkbox = document.querySelector("input[id=toggleSwitch]");
@@ -40,7 +45,7 @@ checkbox.addEventListener('change', function() {
 })
 
 var button = document.getElementById("send_pdf");
-button.addEventListener('click', async function() {
+button.addEventListener('click', async () => {
 
     let queryOptions = { active: true, lastFocusedWindow: true };
     // `tab` will either be a `tabs.Tab` instance or `undefined`.
@@ -65,7 +70,20 @@ button.addEventListener('click', async function() {
         doc.output("dataurlnewwindow");
     }
 
-    chrome.scripting.executeScript({
+   await chrome.scripting
+            .executeScript({
+              target : {tabId : tab.id},
+                files : [ "./lib/js/jspdf.umd.min.js" ],
+            })
+            .then(injectionResults => {
+              for (const {frameId, result} of injectionResults) {
+                console.log(`Frame ${frameId} result:`, result);
+              }
+
+            }
+            )
+
+    await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             func: printPdf
     }).then(() => console.log('Injected a function!'));
@@ -75,7 +93,6 @@ chrome.runtime.sendMessage({"get": "current_state"}, (response) => {
     if (typeof response !== "undefined") {
         checkbox.checked = response.is_enabled_pdf
         validateView(response.is_enabled_pdf)
-
     }
 })
 
@@ -83,7 +100,7 @@ chrome.runtime.sendMessage(
     {
         "set": "get_tables"
     }, async (response) => {
-        if (response != undefined && response != "") {
+        if (typeof response !== 'undefined' && response != "") {
             await loadlist(response);
         }
 

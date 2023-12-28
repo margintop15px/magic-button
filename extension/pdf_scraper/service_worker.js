@@ -23,54 +23,55 @@ chrome.runtime.onInstalled.addListener(async ({ reason }) => {
 });
 
 // Register popup messages listener
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         /* getters */
-       var isEnabled = await getVariables('is_enabled_pdf');
-        if ('is_enabled_pdf' === request.get) {
-            sendResponse({
-                is_enabled_pdf: isEnabled
-            });
-        }
-
-        if ('current_state' === request.get) {
-            sendResponse({
-                is_enabled_pdf: isEnabled
-            });
-        }
-
-        /* setters */
-        if ('is_enabled_pdf' === request.set) {
-            // if changed
-            if (request.value !== isEnabled) {
-                isEnabled = request.value;
-                setVariables('is_enabled_pdf', isEnabled);
-            }
-        }
-
-      if ('get_tables' === request.set) {
-        let response = await fetch('http://localhost:3000/api/v1/get-tables', {method : "GET", mode: 'cors'});
-        try {
-         if (response.ok) {
-             const result =  await response.json();
-           sendResponse(result);
-         }
-          else if (response.status == 404 ){
-            sendResponse({
-                items : []
-            });
-          }
-          else {
-             throw new Error(`Request failed with status ${response.status}`);
-         }
-     }
-     catch(error)  {
-         console.error(`Error in load function for : ${error}`);
-
-     };
-
-
+  const promise = new Promise(async (resolve) => {
+    var isEnabled = await getVariables('is_enabled_pdf');
+    resolve(isEnabled)
+  })
+  promise.then((isEnabled) => {
+    if ('is_enabled_pdf' === request.get) {
+      sendResponse({
+        is_enabled_pdf: isEnabled
+      });
     }
-    });
+
+    if ('current_state' === request.get) {
+      sendResponse({
+        is_enabled_pdf: isEnabled
+      });
+    }
+
+    /* setters */
+    if ('is_enabled_pdf' === request.set) {
+      // if changed
+      if (request.value !== isEnabled) {
+        isEnabled = request.value;
+        setVariables('is_enabled_pdf', isEnabled);
+      }
+    }
+  })
+      if ('get_tables' === request.set) {
+        try {
+          const promiseFetch = new Promise(async (resolve) => {
+            let response = await fetch('http://localhost:3000/api/v1/get-tables', {method : "GET", mode: 'cors'});
+            if (response.ok) {
+              const result =  await response.json();
+              resolve(result)
+            }
+          })
+          promiseFetch.then((response) => {
+              sendResponse(response);
+          }
+          )
+        }
+        catch(error)  {
+          console.error(`Error in load function for : ${error}`);
+        };
+      }
+
+  return true
+});
 
 chrome.action.onClicked.addListener(async (tab) => {
     const prevState = await chrome.action.getBadgeText({ tabId: tab.id });
@@ -87,10 +88,10 @@ chrome.action.onClicked.addListener(async (tab) => {
       // Insert the CSS file when the user turns the extension on
       chrome.scripting
             .executeScript({
-              target : {tabId : getTabId()},
+              target : {tabId : tab.id},
               files : [ "lib/js/jspdf.umd.min.js" ],
             })
             .then(() => console.log("script injected"));
-    }
   }
-                                   );
+}
+)

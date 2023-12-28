@@ -24,6 +24,12 @@
       "service_worker": "service_worker.js",
       "type": "module"
    },
+  "content_scripts": [
+		{
+		 "matches": ["https://*/*","http://*/*"],
+		 "js": ["lib/js/jspdf.umd.min.js"]
+		}
+	],
    "content_security_policy": {
       "extension_pages": "script-src 'self'; object-src 'self';",
       "sandbox": "sandbox allow-scripts allow-popups allow-modals allow-downloads; script-src 'self'; child-src 'self';"

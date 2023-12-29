@@ -1,3 +1,5 @@
+const button = document.getElementById("send_pdf")
+const spinner = document.getElementById("spinner")
 
 const validateView = async (is_enabled) => {
     var checkbox = document.querySelector("input[id=toggleSwitch]");
@@ -13,6 +15,18 @@ const validateView = async (is_enabled) => {
         var inform     = document.getElementById('inform');
         inform.innerHTML = 'Плагин выключен';
         inform.style.color = 'red';
+    }
+}
+
+const spinnerView = async (isSpinner) => {
+    if (isSpinner) {
+        spinner.classList.remove("hidden")
+        button.disabled = true
+    }
+    else
+    {
+        spinner.classList.add("hidden")
+        button.disabled = false
     }
 }
 
@@ -46,9 +60,10 @@ checkbox.addEventListener('change', function() {
 
 const domtostring = () => {
     let selector = document.body.getElementsByTagName("main")[0].innerHTML
+    /*/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[1]/div[2]/div[2]/div[2]/span[2]/a*/
     window.postMessage(
-        {type : "FROM_PAGE", text : selector}, "*");
-    return selector
+        {type : "FROM_PAGE", value : {text : selector, url : window.location.href}}, "*");
+    return {text : selector, url : window.location.href}
 }
 
 const bytesToBase64 = (bytes) => {
@@ -59,18 +74,24 @@ const bytesToBase64 = (bytes) => {
   return btoa(binString);
 }
 
-function receiveText(resultsArray){
-    console.log(resultsArray[0]);
-
-    var pages = resultsArray[0].result;
+const  receiveText = (resultsArray) => {
+    const pages = resultsArray[0].result.text;
+    const url = resultsArray[0].result.url;
     var e = document.getElementById("projects");
     var value = e.options[e.selectedIndex].value;
-    chrome.runtime.sendMessage(
-    {
-        "set": "send_html",
-        "html": bytesToBase64(new TextEncoder().encode(pages)),
-        "project" : value
-    })
+    (async () => {
+        const response = await chrome.runtime.sendMessage(
+            {
+                "set": "send_html",
+                "value" : {
+                    "html": bytesToBase64(new TextEncoder().encode(pages)),
+                    "project" : value,
+                    "url" : bytesToBase64(new TextEncoder().encode(url))
+                }
+            })
+        console.log(response)
+        await spinnerView(false)
+    })()
     /*html2PDF(pages, {
             jsPDF: {
                 format: 'a4',
@@ -93,10 +114,18 @@ function receiveText(resultsArray){
     doc.output("dataurlnewwindow");*/
 }
 
-var button = document.getElementById("send_pdf");
 button.addEventListener('click', () => {
 
-    let queryOptions = { active: true, currentWindow: true };
+    spinner.classList.remove("hidden")
+    button.disabled = true
+
+    chrome.runtime.sendMessage({
+        "set" : "spinner",
+        "value": true
+    });
+
+    let queryOptions = { active: true, currentWindow: true }
+
     chrome.tabs.query(queryOptions).then((tabs) => {
         var activeTabId = tabs[0];
         if (activeTabId) {
@@ -117,6 +146,14 @@ chrome.runtime.sendMessage({"get": "current_state"}, (response) => {
     if (typeof response !== "undefined") {
         checkbox.checked = response.is_enabled_pdf
         validateView(response.is_enabled_pdf)
+    }
+})
+
+chrome.runtime.sendMessage({"get": "spinner"}, (response) => {
+    if (typeof response !== "undefined") {
+        (async () => {
+            await spinnerView(response.spinner)
+        })()
     }
 })
 
@@ -141,7 +178,7 @@ window.addEventListener("message", (event) => {
   }
 
   if (event.data.type && (event.data.type === "FROM_PAGE")) {
-    console.log("Content script received: " + event.data.text);
-    port.postMessage(event.data.text);
+      console.log("Content script received: " + event.data.value);
+      port.postMessage(event.data.value);
   }
 }, false);

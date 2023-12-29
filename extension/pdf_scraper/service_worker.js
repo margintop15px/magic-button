@@ -54,24 +54,49 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     }
   })
+
+  const spinnerPromise = new Promise(async (resolve) => {
+    var isSpinner = await getVariables('spinner');
+    resolve(isSpinner)
+  })
+  spinnerPromise.then((isSpinner) => {
+    if ('spinner' === request.set) {
+      // if changed
+      if (request.value !== isSpinner) {
+        isSpinner = request.value;
+        setVariables('spinner', isSpinner);
+      }
+    }
+    if ('spinner' === request.get) {
+      sendResponse({
+        spinner: isSpinner
+      });
+    }
+  })
+
   if ('send_html' === request.set) {
     const promiseSend = new Promise(async (resolve) => {
-      let response = await fetch('https://saved-stallion-unique.ngrok-free.app/api/v1/'+ request.project+'/html',
+      let response = await fetch('https://saved-stallion-unique.ngrok-free.app/api/v1/'+ request.value.project+'/html',
                                  {method : 'POST',
                                   headers: {
 			                            'Content-Type': 'application/json'
 		                            },
-		                            body: JSON.stringify({html: request.html})
+		                            body: JSON.stringify(request.value)
                               });
-        if (response.ok) {
-          const result =  await new Response(response.body).text();
-          resolve(result)
-        }
+      if (response.ok) {
+        const result =  await new Response(response.body).text();
+        resolve(result)
+      }
+      else {
+        setVariables('spinner', false)
+        sendResponse('OK');
+      }
       })
       promiseSend.then((response) => {
+        setVariables('spinner', false)
         sendResponse(response);
       }
-                       )
+      )
   }
   if ('get_tables' === request.get) {
     try {

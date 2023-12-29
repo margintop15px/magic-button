@@ -44,14 +44,14 @@ checkbox.addEventListener('change', function() {
     }
 })
 
-function DOMtoString() {
+const domtostring = () => {
     let selector = document.body.getElementsByTagName("main")[0].innerHTML
     window.postMessage(
         {type : "FROM_PAGE", text : selector}, "*");
     return selector
 }
 
-function bytesToBase64(bytes) {
+const bytesToBase64 = (bytes) => {
     var binString = '';
     for(var i = 0; i < Math.ceil(bytes.length / 32768.0); i++) {
         binString += String.fromCharCode.apply(null, bytes.slice(i * 32768, Math.min((i+1) * 32768, bytes.length)))
@@ -102,7 +102,7 @@ button.addEventListener('click', () => {
         if (activeTabId) {
             return chrome.scripting.executeScript({
                 target: { tabId: activeTabId.id },
-                func: DOMtoString,
+                func: domtostring,
             }, receiveText)
         }
     }).then((results) => {

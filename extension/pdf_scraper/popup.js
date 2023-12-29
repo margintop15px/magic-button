@@ -59,14 +59,67 @@ checkbox.addEventListener('change', function() {
 })
 
 const domtostring = () => {
+    const simulatedClick = (target, options) => {
+
+        var event = target.ownerDocument.createEvent('MouseEvents'),
+            options = options || {},
+            opts = { // These are the default values, set up for un-modified left clicks
+                type: 'click',
+                canBubble: true,
+                cancelable: true,
+                view: target.ownerDocument.defaultView,
+                detail: 1,
+                screenX: 0, //The coordinates within the entire page
+                screenY: 0,
+                clientX: 0, //The coordinates within the viewport
+                clientY: 0,
+                ctrlKey: false,
+                altKey: false,
+                shiftKey: false,
+                metaKey: false, //I *think* 'meta' is 'Cmd/Apple' on Mac, and 'Windows key' on Win. Not sure, though!
+                button: 0, //0 = left, 1 = middle, 2 = right
+                relatedTarget: null,
+            };
+
+        //Merge the options with the defaults
+        for (var key in options) {
+            if (options.hasOwnProperty(key)) {
+                opts[key] = options[key];
+            }
+        }
+
+        //Pass in the options
+        event.initMouseEvent(
+            opts.type,
+            opts.canBubble,
+            opts.cancelable,
+            opts.view,
+            opts.detail,
+            opts.screenX,
+            opts.screenY,
+            opts.clientX,
+            opts.clientY,
+            opts.ctrlKey,
+            opts.altKey,
+            opts.shiftKey,
+            opts.metaKey,
+            opts.button,
+            opts.relatedTarget
+        );
+
+        //Fire the event
+        target.dispatchEvent(event);
+    }
+
     let selector = document.body.getElementsByTagName("main")[0].innerHTML
     /*/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[1]/div[2]/div[2]/div[2]/span[2]/a*/
     var xPathContact = document.evaluate ('//html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[1]/div[2]/div[2]/div[2]/span[2]/a', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null)
-    xPathContact.singleNodeValue.click()
+    //xPathContact.singleNodeValue.click()
+    simulatedClick(xPathContact.singleNodeValue)
     var xPathPopUpContact = document.evaluate ('/html/body/div[3]/div/div', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerHTML
     var xPathPopUpClose = document.evaluate ('/html/body/div[3]/div/div/button', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null)
-    xPathPopUpClose.singleNodeValue.click()
-
+    //xPathPopUpClose.singleNodeValue.click()
+    simulatedClick(xPathPopUpClose.singleNodeValue)
     window.postMessage(
         {type : "FROM_PAGE", value : {text : selector, url : window.location.href, contact : xPathPopUpContact}}, "*");
     return {text : selector, url : window.location.href, contact : xPathPopUpContact}

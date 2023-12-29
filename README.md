@@ -36,4 +36,6 @@ lein run
 
 ```shell
 curl http://localhost:3000/api/v1/get-tables
+
+curl -XPOST -F file=@docs/Profile.pdf http://localhost:3000/api/v1/me/cv
 ```

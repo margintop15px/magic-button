@@ -5,3 +5,4 @@ env
 target
 .lein-repl-history
 .nrepl-port
+resources/*.html

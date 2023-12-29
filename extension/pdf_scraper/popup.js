@@ -150,18 +150,16 @@ button.addEventListener('click', () => {
 
 })
 
-chrome.runtime.sendMessage({"get": "current_state"}, (response) => {
+chrome.runtime.sendMessage({"get": "current_state"}, async (response) => {
     if (typeof response !== "undefined") {
         checkbox.checked = response.is_enabled_pdf
-        validateView(response.is_enabled_pdf)
+        await validateView(response.is_enabled_pdf)
     }
 })
 
-chrome.runtime.sendMessage({"get": "spinner"}, (response) => {
+chrome.runtime.sendMessage({"get": "spinner"}, async (response) => {
     if (typeof response !== "undefined") {
-        (async () => {
             await spinnerView(response.spinner)
-        })()
     }
 })
 

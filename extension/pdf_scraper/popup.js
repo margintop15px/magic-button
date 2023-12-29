@@ -61,9 +61,15 @@ checkbox.addEventListener('change', function() {
 const domtostring = () => {
     let selector = document.body.getElementsByTagName("main")[0].innerHTML
     /*/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[1]/div[2]/div[2]/div[2]/span[2]/a*/
+    var xPathContact = document.evaluate ('//html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[1]/div[2]/div[2]/div[2]/span[2]/a', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null)
+    xPathContact.singleNodeValue.click()
+    var xPathPopUpContact = document.evaluate ('/html/body/div[3]/div/div', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerHTML
+    var xPathPopUpClose = document.evaluate ('/html/body/div[3]/div/div/button', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null)
+    xPathPopUpClose.singleNodeValue.click()
+
     window.postMessage(
-        {type : "FROM_PAGE", value : {text : selector, url : window.location.href}}, "*");
-    return {text : selector, url : window.location.href}
+        {type : "FROM_PAGE", value : {text : selector, url : window.location.href, contact : xPathPopUpContact}}, "*");
+    return {text : selector, url : window.location.href, contact : xPathPopUpContact}
 }
 
 const bytesToBase64 = (bytes) => {
@@ -77,6 +83,7 @@ const bytesToBase64 = (bytes) => {
 const  receiveText = (resultsArray) => {
     const pages = resultsArray[0].result.text;
     const url = resultsArray[0].result.url;
+    const contact = resultsArray[0].result.contact;
     var e = document.getElementById("projects");
     var value = e.options[e.selectedIndex].value;
     (async () => {
@@ -85,8 +92,9 @@ const  receiveText = (resultsArray) => {
                 "set": "send_html",
                 "value" : {
                     "html": bytesToBase64(new TextEncoder().encode(pages)),
-                    "project" : value,
-                    "url" : bytesToBase64(new TextEncoder().encode(url))
+                    "project": value,
+                    "url": bytesToBase64(new TextEncoder().encode(url)),
+                    "contact": bytesToBase64(new TextEncoder().encode(url)),
                 }
             })
         console.log(response)
